@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>up2git - GitHub ZIP File Uploader</title>
+  
+  <!-- iOS Web App Optimization -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#F2F2F7">
+
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- JSZip CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+
+  <!-- Clean Subtle Monochrome Ambient Blobs -->
+  <div class="ambient-background">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+  </div>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>up2git</h1>
+        <span>GitHub ZIP Uploader</span>
+      </div>
+    </div>
+
+    <!-- Theme Toggle (Light / Dark) -->
+    <div class="header-actions">
+      <button id="btn-theme-toggle" class="btn-theme-toggle" title="Ganti Tema Light/Dark" aria-label="Toggle Theme">
+        <svg id="theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+        <svg id="theme-icon-moon" class="hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="main-container">
+
+    <!-- VIEW 1: HOME & AUTHENTICATION -->
+    <section id="view-home" class="view active">
+      
+      <!-- Authentication Input Section -->
+      <div id="auth-section">
+        <div class="glass-card">
+          <h2 class="card-title">Connect to GitHub</h2>
+          <p class="card-subtitle">Upload seluruh isi file beserta folder di dalam ZIP langsung dari HP Anda ke repository GitHub.</p>
+          
+          <div class="warning-banner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            <div>
+              <p><strong>Keamanan Privasi 100%:</strong> Token Anda bersifat sensitif. up2git hanya menyimpan token di dalam <em>SessionStorage</em> sementara di browser HP Anda (bukan localStorage) dan tidak dikirim ke server pihak ketiga mana pun.</p>
+            </div>
+          </div>
+
+          <form id="form-login">
+            <div class="form-group">
+              <label class="form-label" for="input-pat-token">Personal Access Token (PAT)</label>
+              <input type="password" id="input-pat-token" class="form-input" placeholder="ghp_xxxx atau github_pat_xxxx" autocomplete="off" required>
+              <p class="mt-1" style="font-size: 0.82rem; color: var(--text-dim);">Scope minimal yang dibutuhkan: <span style="color: var(--accent-blue); font-weight: 600;">repo</span> dan <span style="color: var(--accent-blue); font-weight: 600;">read:user</span>.</p>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+              Connect to GitHub
+            </button>
+          </form>
+        </div>
+
+        <div class="glass-card text-center" style="padding: 20px;">
+          <p style="font-size: 0.92rem; color: var(--text-muted);">Belum punya Personal Access Token?</p>
+          <button class="btn btn-glass btn-sm mt-1" onclick="window.uiManager.switchView('tutorial')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            Lihat Panduan & Tutorial
+          </button>
+        </div>
+      </div>
+
+      <!-- User Profile Section -->
+      <div id="profile-section" class="hidden">
+        <div class="glass-card profile-card">
+          <div class="avatar-container">
+            <img id="profile-avatar" class="profile-avatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%236e6e73'/%3E%3C/svg%3E" alt="Avatar">
+            <div class="status-indicator" title="Connected"></div>
+          </div>
+          
+          <h2 id="profile-name" class="profile-name">Developer</h2>
+          <a id="profile-username" class="profile-username" href="#" target="_blank">@username</a>
+          <p id="profile-bio" class="profile-bio">GitHub Bio</p>
+
+          <div class="stats-row">
+            <div class="stat-box">
+              <div id="stat-repos-count" class="stat-num">-</div>
+              <div class="stat-label">Repositories</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-num" style="color: var(--accent-green);">Ready</div>
+              <div class="stat-label">up2git Engine</div>
+            </div>
+          </div>
+
+          <!-- NEW: Upload History Chart Card -->
+          <div class="history-chart-card">
+            <div class="history-chart-header">
+              <div>
+                <h3>Riwayat Upload</h3>
+                <p>Total file diupload per sesi</p>
+              </div>
+              <span id="total-uploaded-badge" class="badge badge-public">0 File</span>
+            </div>
+            <div id="history-chart-container" class="history-chart"></div>
+          </div>
+
+          <div class="w-100" style="display: flex; flex-direction: column; gap: 12px;">
+            <button id="btn-go-upload" class="btn btn-success">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              Mulai Upload File ZIP
+            </button>
+            <button id="btn-go-new-repo" class="btn btn-glass">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              Buat Repository Baru
+            </button>
+            <button id="btn-logout" class="btn btn-danger-glass mt-1">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+              Putuskan Koneksi (Logout)
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- VIEW 2: REPOSITORIES -->
+    <section id="view-repos" class="view">
+      <div class="glass-card" style="padding: 20px;">
+        <div class="repos-header">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="input-search-repos" class="form-input" placeholder="Cari repository...">
+          </div>
+          <button id="btn-refresh-repos" class="btn btn-glass btn-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            Refresh
+          </button>
+        </div>
+
+        <div id="repos-grid" class="repos-grid">
+          <div class="text-center" style="grid-column: 1/-1; padding: 40px;">
+            <div class="spinner"></div>
+            <p class="mt-1" style="color: var(--text-muted);">Memuat repository...</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: UPLOAD ZIP FILE -->
+    <section id="view-upload" class="view">
+      <div class="glass-card">
+        <h2 class="card-title">Upload ZIP & Ekstrak</h2>
+        <p class="card-subtitle">Pilih repository tujuan, lalu pilih file .zip yang akan diupload lewat up2git.</p>
+
+        <!-- Target Repository Select -->
+        <div class="form-group">
+          <label class="form-label" for="upload-target-repo">1. Repository Tujuan</label>
+          <select id="upload-target-repo" class="form-select">
+            <option value="" disabled selected>-- Memuat Repository --</option>
+          </select>
+        </div>
+
+        <!-- Custom Commit Message -->
+        <div class="form-group">
+          <label class="form-label" for="upload-commit-msg">2. Pesan Commit (Commit Message)</label>
+          <input type="text" id="upload-commit-msg" class="form-input" value="Upload via up2git" placeholder="Contoh: Initial commit atau Update fitur">
+        </div>
+
+        <!-- Dropzone Area -->
+        <div class="form-group">
+          <label class="form-label">3. File ZIP Arsip</label>
+          <div id="zip-dropzone" class="dropzone">
+            <input type="file" id="zip-file-input" accept=".zip,application/zip,application/x-zip-compressed">
+            <div class="dropzone-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            </div>
+            <div class="dropzone-text">
+              <h3 id="dropzone-file-name">Pilih File ZIP atau Drag & Drop ke sini</h3>
+              <p>Format yang didukung: .zip (Maksimal 50MB)</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Extracted File Tree Preview -->
+        <div id="file-preview-card" class="file-preview-card">
+          <div class="file-preview-header">
+            <span style="font-weight: 700; font-size: 0.92rem;">Pratinjau Isi ZIP:</span>
+            <div>
+              <span id="preview-file-count" class="badge badge-public">0 File</span>
+              <span id="preview-total-size" class="badge badge-private" style="margin-left: 6px;">0 KB</span>
+            </div>
+          </div>
+          <div id="file-list" class="file-list"></div>
+        </div>
+
+        <!-- Upload Button -->
+        <div class="mt-2">
+          <button id="btn-start-upload" class="btn btn-success">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+            Upload Seluruh Isi ke GitHub
+          </button>
+        </div>
+
+        <!-- Progress Bar & Status -->
+        <div id="progress-container" class="progress-container">
+          <div class="progress-header">
+            <span>Proses Upload:</span>
+            <span id="progress-percent" style="color: var(--accent-blue);">0%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div id="progress-bar-fill" class="progress-bar-fill"></div>
+          </div>
+          <p id="progress-status-text" class="progress-status">Menyiapkan...</p>
+          <div id="upload-log" class="upload-log"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- VIEW 4: NEW REPOSITORY -->
+    <section id="view-new-repo" class="view">
+      <div class="glass-card">
+        <h2 class="card-title">Buat Repository Baru</h2>
+        <p class="card-subtitle">Buat repository langsung di akun GitHub Anda lewat up2git.</p>
+
+        <form id="form-new-repo">
+          <div class="form-group">
+            <label class="form-label" for="new-repo-name">Nama Repository (*)</label>
+            <input type="text" id="new-repo-name" class="form-input" placeholder="contoh: web-app-ku" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="new-repo-desc">Deskripsi (Opsional)</label>
+            <textarea id="new-repo-desc" class="form-textarea" rows="3" placeholder="Deskripsi singkat project ini..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Hak Akses (Visibility)</label>
+            <div class="segmented-control">
+              <input type="radio" id="vis-public" name="repo-visibility" value="public" checked>
+              <label for="vis-public">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                Public
+              </label>
+
+              <input type="radio" id="vis-private" name="repo-visibility" value="private">
+              <label for="vis-private">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                Private
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary mt-2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Buat Repository
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- VIEW 5: TUTORIAL & PANDUAN -->
+    <section id="view-tutorial" class="view">
+      <div class="glass-card" style="padding: 24px;">
+        <h2 class="card-title">Panduan & Tutorial up2git</h2>
+        <p class="card-subtitle">Langkah mudah menggunakan up2git untuk upload file ZIP ke GitHub lewat HP.</p>
+
+        <div class="tutorial-step">
+          <div class="tutorial-step-header">
+            <div class="step-number">1</div>
+            <div class="step-title">Cara Membuat GitHub Personal Access Token (PAT)</div>
+          </div>
+          <div class="tutorial-step-content">
+            <p>Untuk menghubungkan up2git dengan akun GitHub Anda, Anda membutuhkan token khusus:</p>
+            <ul>
+              <li>Buka browser HP Anda lalu login ke <strong>github.com</strong>.</li>
+              <li>Klik foto profil Anda di pojok kanan atas, lalu pilih <strong>Settings</strong>.</li>
+              <li>Scroll ke paling bawah di menu sebelah kiri, klik <strong>Developer settings</strong>.</li>
+              <li>Pilih menu <strong>Personal access tokens</strong> &gt; <strong>Tokens (classic)</strong>.</li>
+              <li>Klik tombol <strong>Generate new token (classic)</strong>.</li>
+              <li>Beri nama pada note (misal: <em>up2git HP</em>).</li>
+              <li>Pada bagian <strong>Select scopes</strong>, centang kotak <span class="code-pill">repo</span> (Full control of private repositories) dan <span class="code-pill">read:user</span>.</li>
+              <li>Scroll ke bawah lalu klik tombol <strong>Generate token</strong>.</li>
+              <li><strong>PENTING:</strong> Salin (copy) kode token yang muncul dan simpan. Kode ini hanya ditampilkan satu kali!</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="tutorial-step">
+          <div class="tutorial-step-header">
+            <div class="step-number">2</div>
+            <div class="step-title">Cara Connect ke up2git</div>
+          </div>
+          <div class="tutorial-step-content">
+            <p>Buka menu <strong>Home</strong> di aplikasi ini, paste kode token yang sudah Anda salin ke dalam kolom input token, lalu klik tombol <strong>Connect to GitHub</strong>. Jika berhasil, foto profil dan statistik GitHub Anda akan langsung muncul.</p>
+          </div>
+        </div>
+
+        <div class="tutorial-step">
+          <div class="tutorial-step-header">
+            <div class="step-number">3</div>
+            <div class="step-title">Cara Memilih Repository Tujuan</div>
+          </div>
+          <div class="tutorial-step-content">
+            <p>Anda bisa memilih repository lewat 2 cara:</p>
+            <ul>
+              <li>Buka menu <strong>Repositories</strong> di bawah layar, cari repo yang Anda inginkan, lalu klik tombol <strong>Upload ke sini</strong>.</li>
+              <li>Atau langsung buka menu <strong>Upload</strong> dan pilih nama repository dari menu dropdown di atas.</li>
+              <li>Jika belum punya repo, buka menu <strong>New Repo</strong> untuk membuat repository baru secara praktis.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="tutorial-step">
+          <div class="tutorial-step-header">
+            <div class="step-number">4</div>
+            <div class="step-title">Cara Upload File ZIP beserta Strukturnya</div>
+          </div>
+          <div class="tutorial-step-content">
+            <p>Kompres folder project Anda di HP menjadi format <strong>.zip</strong>:</p>
+            <ul>
+              <li>Di menu <strong>Upload</strong>, klik kotak area Drag & Drop lalu pilih file .zip Anda.</li>
+              <li>up2git akan mengekstrak seluruh file beserta nested foldernya secara otomatis langsung di browser HP.</li>
+              <li>Pratinjau seluruh file dan ukurannya akan ditampilkan di layar.</li>
+              <li>Klik <strong>Upload Seluruh Isi ke GitHub</strong>, lalu konfirmasi.</li>
+              <li>Tunggu progress bar sampai 100%. File Anda sudah online di GitHub!</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Credit Footer -->
+  <footer class="app-footer">
+    <p>up2git &bull; dibuat oleh <span class="author-highlight">Vidzz</span></p>
+  </footer>
+
+  <!-- BOTTOM FLOATING PILL NAVIGATION -->
+  <nav class="bottom-nav-container">
+    <div class="bottom-nav-pill">
+      
+      <!-- Home -->
+      <button class="nav-item active" data-target="home" title="Home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        <span class="nav-label">Home</span>
+      </button>
+
+      <!-- Repositories -->
+      <button class="nav-item" data-target="repos" title="Repositories">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        <span class="nav-label">Repos</span>
+      </button>
+
+      <!-- Upload -->
+      <button class="nav-item" data-target="upload" title="Upload ZIP">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        <span class="nav-label">Upload</span>
+      </button>
+
+      <!-- New Repo -->
+      <button class="nav-item" data-target="new-repo" title="New Repository">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+        <span class="nav-label">New Repo</span>
+      </button>
+
+      <!-- Tutorial -->
+      <button class="nav-item" data-target="tutorial" title="Tutorial">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        <span class="nav-label">Tutorial</span>
+      </button>
+
+    </div>
+  </nav>
+
+  <!-- MODALS & OVERLAYS -->
+  <div id="modal-overlay" class="modal-overlay">
+    <div class="modal-dialog">
+      <h3 id="modal-title" class="modal-title">Konfirmasi</h3>
+      <div id="modal-body" class="modal-body"></div>
+      <div class="modal-footer">
+        <button id="modal-btn-cancel" class="btn btn-glass" style="flex: 1;">Batal</button>
+        <button id="modal-btn-confirm" class="btn btn-primary" style="flex: 1;">Ya, Lanjutkan</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="spinner"></div>
+    <span id="loading-text" style="font-weight: 700; font-size: 1rem; color: #fff;">Memproses...</span>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- App Scripts -->
+  <script src="js/github.js"></script>
+  <script src="js/zip.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a12e4b994a2cf916',t:'MTc4MjY2NjUyNQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
