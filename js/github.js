@@ -209,8 +209,8 @@ class GitHubAPI {
    * Reset repository contents.
    *
    * Repository tetap ada.
-   * Semua file pada default branch akan dihapus
-   * melalui satu commit baru dengan Git tree kosong.
+   * Semua file pada default branch dihapus satu per satu
+   * menggunakan GitHub Contents API.
    */
   async resetRepository(owner, repo) {
     /*
@@ -225,7 +225,7 @@ class GitHubAPI {
       repository.default_branch || "main";
 
     /*
-     * 2. Ambil reference dari default branch
+     * 2. Ambil seluruh Git tree secara recursive
      */
     const refResponse = await fetch(
       `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/ref/heads/${encodeURIComponent(branch)}`,
@@ -235,7 +235,8 @@ class GitHubAPI {
       }
     );
 
-    const refData = await refResponse.json();
+    const refData =
+      await refResponse.json();
 
     if (!refResponse.ok) {
       throw new Error(
@@ -248,7 +249,7 @@ class GitHubAPI {
       refData.object.sha;
 
     /*
-     * 3. Ambil commit saat ini
+     * 3. Ambil commit
      */
     const commitResponse = await fetch(
       `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/commits/${currentCommitSha}`,
@@ -264,15 +265,12 @@ class GitHubAPI {
     if (!commitResponse.ok) {
       throw new Error(
         commitData.message ||
-        `Gagal mengambil commit repository: HTTP ${commitResponse.status}`
+        `Gagal mengambil commit: HTTP ${commitResponse.status}`
       );
     }
 
     /*
-     * 4. Ambil isi tree repository
-     *
-     * Digunakan hanya untuk menghitung jumlah
-     * file yang akan dihapus.
+     * 4. Ambil seluruh isi repository
      */
     const treeResponse = await fetch(
       `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${commitData.tree.sha}?recursive=1`,
@@ -292,34 +290,29 @@ class GitHubAPI {
       );
     }
 
-    /*
-     * GitHub dapat memotong hasil recursive tree
-     * jika repository sangat besar.
-     */
     if (treeData.truncated) {
       throw new Error(
-        "Repository terlalu besar untuk di-reset secara aman dalam satu operasi."
+        "Repository terlalu besar untuk di-reset secara aman."
       );
     }
 
     /*
-     * Hitung file dan submodule yang ada.
+     * Ambil semua file.
+     *
+     * blob     = file biasa
+     * commit   = submodule
      */
-    const entries =
+    const files =
       (treeData.tree || []).filter(
         item =>
           item.type === "blob" ||
           item.type === "commit"
       );
 
-    const removedCount =
-      entries.length;
-
     /*
-     * Jika repository memang sudah kosong,
-     * tidak perlu membuat commit baru.
+     * Repository sudah kosong
      */
-    if (removedCount === 0) {
+    if (files.length === 0) {
       return {
         branch,
         removed: 0,
@@ -328,106 +321,70 @@ class GitHubAPI {
     }
 
     /*
-     * 5. Buat Git tree BARU yang benar-benar kosong.
+     * 5. Hapus file satu per satu
      *
-     * PENTING:
-     *
-     * Jangan menggunakan:
-     *
-     * base_tree: commitData.tree.sha
-     *
-     * dan jangan mengirim:
-     *
-     * sha: null
-     *
-     * untuk semua file.
-     *
-     * Kita membuat tree kosong secara langsung.
+     * Contents API:
+     * DELETE /repos/{owner}/{repo}/contents/{path}
      */
-    const newTreeResponse = await fetch(
-      `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees`,
-      {
-        method: "POST",
-        headers: this._getHeaders(),
-        body: JSON.stringify({
-          tree: []
-        })
-      }
-    );
+    let removed = 0;
 
-    const newTreeData =
-      await newTreeResponse.json();
+    /*
+     * Sort berdasarkan path terdalam terlebih dahulu.
+     *
+     * Ini membantu jika repository memiliki struktur
+     * directory/submodule tertentu.
+     */
+    files.sort((a, b) => {
+      const depthA = a.path.split("/").length;
+      const depthB = b.path.split("/").length;
 
-    if (!newTreeResponse.ok) {
-      throw new Error(
-        newTreeData.message ||
-        `Gagal membuat tree kosong: HTTP ${newTreeResponse.status}`
+      return depthB - depthA;
+    });
+
+    for (const file of files) {
+      const encodedPath =
+        file.path
+          .split("/")
+          .map(encodeURIComponent)
+          .join("/");
+
+      const deleteResponse = await fetch(
+        `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodedPath}`,
+        {
+          method: "DELETE",
+
+          headers: this._getHeaders(),
+
+          body: JSON.stringify({
+            message:
+              `Reset repository: delete ${file.path}`,
+
+            sha: file.sha,
+
+            branch: branch
+          })
+        }
       );
+
+      const deleteData =
+        await deleteResponse.json();
+
+      if (!deleteResponse.ok) {
+        throw new Error(
+          deleteData.message ||
+          `Gagal menghapus ${file.path}: HTTP ${deleteResponse.status}`
+        );
+      }
+
+      removed++;
     }
 
     /*
-     * 6. Buat commit baru dengan tree kosong
-     */
-    const newCommitResponse = await fetch(
-      `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/commits`,
-      {
-        method: "POST",
-        headers: this._getHeaders(),
-        body: JSON.stringify({
-          message:
-            "Reset repository contents via up2git",
-
-          tree: newTreeData.sha,
-
-          parents: [
-            currentCommitSha
-          ]
-        })
-      }
-    );
-
-    const newCommitData =
-      await newCommitResponse.json();
-
-    if (!newCommitResponse.ok) {
-      throw new Error(
-        newCommitData.message ||
-        `Gagal membuat commit reset: HTTP ${newCommitResponse.status}`
-      );
-    }
-
-    /*
-     * 7. Pindahkan default branch
-     * ke commit baru.
-     */
-    const updateRefResponse = await fetch(
-      `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/refs/heads/${encodeURIComponent(branch)}`,
-      {
-        method: "PATCH",
-        headers: this._getHeaders(),
-        body: JSON.stringify({
-          sha: newCommitData.sha,
-          force: false
-        })
-      }
-    );
-
-    const updateRefData =
-      await updateRefResponse.json();
-
-    if (!updateRefResponse.ok) {
-      throw new Error(
-        updateRefData.message ||
-        `Gagal memperbarui branch: HTTP ${updateRefResponse.status}`
-      );
-    }
-
-    /*
-     * Berhasil.
+     * Semua file berhasil dihapus.
      */
     return {
       branch,
-      removed: removedCount,
+      removed,
       empty: false
     };
   }
